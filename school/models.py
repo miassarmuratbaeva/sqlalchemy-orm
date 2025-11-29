@@ -1,6 +1,6 @@
 from datetime import datetime
 from sqlalchemy import (
-    Column, Integer, String, Date, DateTime, Text, Float, ForeignKey,
+    Column, Integer, String, Date, DateTime, Text, Float, ForeignKey, Boolean
 )
 from sqlalchemy.orm import relationship
 from .db import Base
@@ -16,6 +16,7 @@ class Student(Base):
     gender = Column('gender', String(length=20), nullable=False)
     bio = Column('bio', Text)
     gpa = Column('gpa', Float, nullable=False)
+    certificates = relationship("Certificate", back_populates="student")
 
     scores = relationship('Score', back_populates='student')
 
@@ -48,4 +49,13 @@ class Score(Base):
 
     def __repr__(self):
         return f'Score(id={self.score_id}, name="{self.subject}", ball={self.ball}, student={self.student_id})'
-    
+class Certificate(Base):
+    __tablename__ = "certificates"
+    id = Column(Integer, primary_key=True)
+    title = Column(String)
+    content = Column(String)
+    certificate_code = Column(String)
+    issued_ad = Column(DateTime)
+    is_verified = Column(Boolean, default=False)
+    student_id = Column(Integer, ForeignKey("students.id"))
+    student = relationship("Student", back_populates="certificates")

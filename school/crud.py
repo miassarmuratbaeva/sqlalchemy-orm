@@ -1,7 +1,8 @@
 from datetime import datetime
 from sqlalchemy import or_, not_, and_
-from .models import Student, Score
+from .models import Student, Score , Certificate 
 from .db import get_db
+import uuid
 
 
 def create_student(first_name: str, last_name: str, birthdate: datetime, bio: str | None = None):
@@ -115,4 +116,50 @@ def get_student_with_scores():
             })
     
     return result
-    
+def add_certificate(student_id: int, title: str, content: str, issued_ad):
+    with get_db() as session:
+        student: Student = session.query(Student).get(student_id)
+        code = str(uuid.uuid4())[:8]   
+        student.certificates.append(
+            Certificate (
+                title=title,
+                content=content,
+                certificate_code=code,
+                issued_ad=issued_ad
+            )
+        )
+        session.commit()
+def verify_certificate(code: str):
+    with get_db() as session:
+        cert = session.query(Certificate).filter(Certificate.certificate_code == code)\
+                      .first()
+        if cert:
+            cert.is_verified = True
+            session.commit()
+
+        return cert
+def get_verified_count():
+    with get_db() as session:
+        return session.query(Certificate).filter_by(is_verified=True).count()
+def get_last_5_certificates():
+    with get_db() as session:
+        return session.query(Certificate).order_by(Certificate.issued_ad.desc())\
+                      .limit(5).all()
+def get_certificate_counts_by_student():
+    with get_db() as session:
+        students = session.query(Student).all()
+        results = [(student.full_name, len(student.certificates)) for student in students]
+        return results
+def get_top_certificate_student():
+    with get_db() as session:
+        students = session.query(Student).all()
+        max_count = 0
+        top_student = None
+        for student in students:
+            total = session.query(Certificate).filter_by(student_id=student.id).count()
+            if total > max_count:
+                max_count = total
+                top_student = student
+        if top_student:
+            return (top_student.full_name, max_count)
+        return None
